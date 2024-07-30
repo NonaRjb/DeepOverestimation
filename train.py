@@ -1,3 +1,6 @@
+import os
+import pickle
+
 from sklearn.model_selection import RepeatedStratifiedKFold
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
@@ -13,7 +16,10 @@ from model.trainer import Trainer
 import utils
 
 
-root_path = "/Volumes/T5 EVO/Overfitting/cov_data"
+local_root_path = "/Volumes/T5 EVO/Overfitting/cov_data"
+local_save_path = "/Volumes/T5 EVO/Overfitting/out/"
+remote_root_path = "/local_storage/datasets/nonar/Overfitting/cov_data"
+remote_save_path = "/Midgard/home/nonar/data/Overfitting/"
 
 
 def seed_everything(seed_val):
@@ -35,8 +41,13 @@ def parse_args():
 
 
 if __name__ == "__main__":
+    remote = False
+
     args = parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    root_path = remote_root_path if remote else local_root_path
+    save_path = remote_save_path if remote else local_save_path
+    os.makedirs(save_path, exist_ok=True)
 
     seed = args.seed
     seed_everything(seed)
@@ -57,6 +68,10 @@ if __name__ == "__main__":
                       f"differ from the covariance matrix dimensions. d is set to {cov_mat.shape[0]}")
         d = cov_mat.shape[0]
 
+    save_dir = cov_file.split(".")[0] + "_out"
+    save_path = os.path.join(save_path, save_dir)
+    os.makedirs(save_path, exist_ok=True)
+
     data = RandomDataset(length=n, n_features=d, cov_mat=cov_mat)
     g = torch.Generator().manual_seed(seed)
     outer_cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=1, random_state=seed)
@@ -64,6 +79,7 @@ if __name__ == "__main__":
 
     val_scores = []
     test_scores = []
+    train_scores = []
 
     for i, (train_all_index, test_index) in enumerate(outer_cv.split(data.samples, data.labels)):
         print(f"##### Test Fold {i} #####\n")
@@ -89,7 +105,11 @@ if __name__ == "__main__":
             test_loss, test_auroc = trainer.evaluate(model, test_loader)
             print(f"Test Loss = {test_loss}, Test ROC-AUC = {test_auroc}\n")
 
-            val_scores.append(best_model['auroc'])
-            test_scores.append(test_auroc)
+            train_scores.append(best_model['train_auroc'].numpy())
+            val_scores.append(best_model['auroc'].numpy())
+            test_scores.append(test_auroc.numpy())
 
+    scores = {'train': np.asarray(train_scores), 'val': np.asarray(val_scores), 'test': np.asarray(test_scores)}
+    with open(os.path.join(save_path, "scores.pkl"), 'wb') as f:
+        pickle.dump(scores, f)
     print(np.mean(val_scores), np.mean(test_scores))

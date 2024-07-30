@@ -79,7 +79,8 @@ class Trainer:
                     'model_state_dict': copy.deepcopy(self.model.state_dict()),
                     'optimizer_state_dict': copy.deepcopy(self.optimizer.state_dict()),
                     'loss': val_loss,
-                    'auroc': val_auroc
+                    'auroc': val_auroc,
+                    'train_auroc': train_auroc
                 }
 
         if best_model is None:
@@ -88,7 +89,8 @@ class Trainer:
                 'model_state_dict': copy.deepcopy(self.model.state_dict()),
                 'optimizer_state_dict': copy.deepcopy(self.optimizer.state_dict()),
                 'loss': val_loss,
-                'auroc': val_auroc
+                'auroc': val_auroc,
+                'train_auroc': train_auroc
             }
 
         print(f"Train Loss = {train_loss}, Train ROC-AUC = {train_auroc}")
