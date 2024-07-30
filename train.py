@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch
 import argparse
 import numpy as np
+import warnings
 
 from dataset.data import RandomDataset
 from model.architectures import MLP
@@ -50,6 +51,11 @@ if __name__ == "__main__":
     cov_file = args.cov_file
 
     cov_mat = utils.load_cov_mat(root_path, cov_file, d)
+    assert cov_mat.shape[0] == cov_mat.shape[1]
+    if cov_mat.shape[0] != d:
+        warnings.warn(f"Number of input features, d, "
+                      f"differ from the covariance matrix dimensions. d is set to {cov_mat.shape[0]}")
+        d = cov_mat.shape[0]
 
     data = RandomDataset(length=n, n_features=d, cov_mat=cov_mat)
     g = torch.Generator().manual_seed(seed)
@@ -73,7 +79,7 @@ if __name__ == "__main__":
             val_loader = DataLoader(data, batch_size=batch_size, sampler=val_sub_sampler, drop_last=False)
             test_loader = DataLoader(data, batch_size=batch_size, sampler=test_sub_sampler, drop_last=False)
 
-            model = MLP(input_size=d, hidden_size=32, n_classes=2)
+            model = MLP(input_size=d, hidden_size=8, n_classes=2)
             optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay, amsgrad=True)
             loss = nn.BCEWithLogitsLoss().to(device)
             trainer = Trainer(model, optimizer, loss, epochs, batch_size, device=device)

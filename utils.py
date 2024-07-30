@@ -14,5 +14,4 @@ def load_cov_mat(root_path, filename, d):
         else:
             raise NotImplementedError
 
-    assert cov_mat.shape[0] == cov_mat.shape[1] == d
     return cov_mat
