@@ -71,7 +71,7 @@ class Trainer:
             self.history['val_auroc'].append(val_auroc)
 
             if val_loss < best_loss:
-                # if val_auroc > best_acc:
+            # if val_auroc > best_acc:
                 best_loss = val_loss
                 # best_acc = val_auroc
                 best_model = {

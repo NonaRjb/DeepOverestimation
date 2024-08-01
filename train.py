@@ -41,7 +41,7 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    remote = False
+    remote = True
 
     args = parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -80,6 +80,7 @@ if __name__ == "__main__":
     val_scores = []
     test_scores = []
     train_scores = []
+    best_epochs = []
 
     for i, (train_all_index, test_index) in enumerate(outer_cv.split(data.samples, data.labels)):
         print(f"##### Test Fold {i} #####\n")
@@ -108,8 +109,9 @@ if __name__ == "__main__":
             train_scores.append(best_model['train_auroc'].numpy())
             val_scores.append(best_model['auroc'].numpy())
             test_scores.append(test_auroc.numpy())
+            best_epochs.append(best_model['epoch'])
 
-    scores = {'train': np.asarray(train_scores), 'val': np.asarray(val_scores), 'test': np.asarray(test_scores)}
+    scores = {'train': np.asarray(train_scores), 'val': np.asarray(val_scores), 'test': np.asarray(test_scores), 'epoch': best_epochs}
     with open(os.path.join(save_path, "scores.pkl"), 'wb') as f:
         pickle.dump(scores, f)
     print(np.mean(val_scores), np.mean(test_scores))
