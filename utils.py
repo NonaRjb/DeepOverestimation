@@ -15,3 +15,23 @@ def load_cov_mat(root_path, filename, d):
             raise NotImplementedError
 
     return cov_mat
+
+
+def generate_cov_mat(d, ratio):
+    """
+
+    :param d: feature dimensionality
+    :param ratio: number of large eigenvalues or ratio of large eigenvalues to d
+    :return:
+    """
+    cov_mat = np.eye(d)
+    if ratio % 1 == 0:
+        assert ratio <= d
+    else:
+        assert ratio < 1
+        ratio = int(ratio * d)
+    cov_mat[:ratio, :] = 10 * cov_mat[:ratio, :]
+    cov_mat[ratio:, :] = 0.01 * cov_mat[ratio:, :]
+    return cov_mat
+
+
