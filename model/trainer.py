@@ -93,6 +93,7 @@ class Trainer:
                 'train_auroc': train_auroc
             }
 
+        print(f"best epoch = {best_model['epoch']}")
         print(f"Train Loss = {train_loss}, Train ROC-AUC = {train_auroc}")
         print(f"Val Loss = {best_model['loss']}, Val ROC-AUC = {best_model['auroc']}")
         # self.plot_history()
