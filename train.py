@@ -3,7 +3,7 @@ import pickle
 
 from sklearn.model_selection import RepeatedStratifiedKFold
 from torch.utils.data import DataLoader
-from torch.optim import AdamW
+from torch.optim import AdamW, Adam, SGD
 import torch.nn as nn
 import torch
 import argparse
@@ -33,7 +33,9 @@ def parse_args():
     parser.add_argument('-b', '--batch', type=int, default=8)
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--optim', type=str, default='adamw')
     parser.add_argument('--hidden_size', type=int, default=8)
+    parser.add_argument('-l', '--n_layers', type=int, default=1)
     parser.add_argument('-n', '--n_samples', type=int, default=1000)
     parser.add_argument('--n_test', type=int, default=1000)
     parser.add_argument('-d', '--n_features', type=int, default=2)
@@ -61,9 +63,12 @@ if __name__ == "__main__":
     # training vars
     batch_size = args.batch
     epochs = args.epochs
+    optim_name = args.optim
     lr = args.lr
-    weight_decay = 0.01
+    weight_decay = 0.
+    # network vars
     hidden_size = args.hidden_size
+    n_layers = args.n_layers
     # data vars
     n = args.n_samples
     n_test = args.n_test
@@ -81,7 +86,17 @@ if __name__ == "__main__":
         save_dir = cov_file.split(".")[0] + "_out"
     else:
         cov_mat = utils.generate_cov_mat(d=d, ratio=r)
-        save_dir = str(d) + "d_" + str(r)
+        variables = args.experiment.split('_')
+        if variables[-1] in ['dr', 'rd']:
+            save_dir = str(d) + "d_" + str(r)
+        elif variables[-1] in ['dh', 'hd']:
+            save_dir = str(d) + "d_" + str(hidden_size) + 'h'
+        elif variables[-1] in ['rh', 'hr']:
+            save_dir = str(hidden_size) + "h_" + str(r)
+        elif variables[-1] in ['rhd', 'rdh', 'dhr', 'drh', 'hdr', 'hrd']:
+            save_dir = str(d) + "d_" + str(hidden_size) + 'h_' + str(r) 
+        else:
+            save_dir = args.experiment
 
     save_path = os.path.join(save_path, save_dir)
     os.makedirs(save_path, exist_ok=True)
@@ -89,8 +104,7 @@ if __name__ == "__main__":
     test_data = RandomDataset(length=n_test, n_features=d, cov_mat=cov_mat, seed=seed+test_offset)
     data = RandomDataset(length=n, n_features=d, cov_mat=cov_mat, seed=seed)
     g = torch.Generator().manual_seed(seed)
-    # outer_cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=1, random_state=seed)
-    inner_cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=1, random_state=seed)
+    inner_cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=seed)
 
     val_scores = []
     test_scores = []
@@ -108,8 +122,15 @@ if __name__ == "__main__":
         val_loader = DataLoader(data, batch_size=batch_size, sampler=val_sub_sampler, drop_last=False)
         test_loader = DataLoader(test_data, batch_size=batch_size, drop_last=False)
 
-        model = MLP(input_size=d, hidden_size=hidden_size, n_classes=2)
-        optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay, amsgrad=True)
+        model = MLP(input_size=d, hidden_size=hidden_size, n_layers=n_layers, n_classes=2)
+        if optim_name == "adamw":
+            optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay, amsgrad=True)
+        elif optim_name == "adam":
+            optimizer = Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        elif optim_name == "sgd":
+            optimizer = SGD(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=0.9)
+        else:
+            raise NotImplementedError
         loss = nn.BCEWithLogitsLoss().to(device)
         trainer = Trainer(model, optimizer, loss, epochs, batch_size, device=device)
         best_model = trainer.train(train_loader, val_loader)

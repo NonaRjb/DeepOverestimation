@@ -27,11 +27,14 @@ def generate_cov_mat(d, ratio):
     cov_mat = np.eye(d)
     if ratio % 1 == 0:
         assert ratio <= d
+        ratio = int(ratio)
     else:
         assert ratio < 1
         ratio = int(ratio * d)
     cov_mat[:ratio, :] = 10 * cov_mat[:ratio, :]
     cov_mat[ratio:, :] = 0.01 * cov_mat[ratio:, :]
+
     return cov_mat
+
 
 
