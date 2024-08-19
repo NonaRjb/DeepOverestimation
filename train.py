@@ -95,6 +95,8 @@ if __name__ == "__main__":
             save_dir = str(hidden_size) + "h_" + str(r)
         elif variables[-1] in ['rhd', 'rdh', 'dhr', 'drh', 'hdr', 'hrd']:
             save_dir = str(d) + "d_" + str(hidden_size) + 'h_' + str(r) 
+        elif variables[-1] in ['dhl', 'lhd', 'hdl', 'dlh', 'ldh', 'hld']:
+            save_dir = str(d) + "d_" + str(hidden_size) + 'h_' + str(n_layers) + 'l'
         else:
             save_dir = args.experiment
 
