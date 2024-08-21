@@ -1,3 +1,5 @@
+import argparse
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -28,9 +30,9 @@ def plot_across_var(df, x, y=None, save_path=None):
                 df_y = df_v[df_v[y] == y_val]
                 if second_var is not None:
                     df_y = df_y.sort_values(by=second_var)
-                fig, ax = plt.subplots(1, 2, figsize=(16, 6))
-                plot_mean_with_se(df_y, ax=ax[0])
-                plot_median_with_iqr(df_y, ax=ax[1])
+                fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+                plot_mean_with_se(df_y, ax=ax)
+                # plot_median_with_iqr(df_y, ax=ax[1])
                 fig.suptitle(f"{x} = {v}, {y} = {y_val}", fontsize=18, y=0.97)
                 plt.subplots_adjust(top=0.9)
                 if save_path:
@@ -40,15 +42,19 @@ def plot_across_var(df, x, y=None, save_path=None):
             # Sort by the second variable if it exists
             if second_var is not None:
                 df_v = df_v.sort_values(by=second_var)
-            fig, ax = plt.subplots(1, 2, figsize=(16, 6))
-            plot_mean_with_se(df_v, ax=ax[0])
-            plot_median_with_iqr(df_v, ax=ax[1])
+            fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+            plot_mean_with_se(df_v, ax=ax)
+            # plot_median_with_iqr(df_v, ax=ax[1])
             if x == 'd':
                 fig.suptitle(f"data dimensionality = {v}", fontsize=18, y=0.97)
             elif x == 'r':
                 fig.suptitle(f"ratio of large eigen values = {v}", fontsize=18, y=0.97)
             elif x == 'h':
                 fig.suptitle(f"hidden size = {v}", fontsize=18, y=0.97)
+            elif x == 'l':
+                fig.suptitle(f"number of layers = {v}", fontsize=18, y=0.97)
+            elif x == 'n':
+                fig.suptitle(f"number of training samples = {v}", fontsize=18, y=0.97)
             plt.subplots_adjust(top=0.9)
             if save_path:
                 plt.savefig(os.path.join(save_path, f"{x}{v}.png"))
@@ -128,10 +134,20 @@ def plot_median_with_iqr(df, ax=None, save_path=None, figname="test.png"):
         plt.savefig(os.path.join(save_path, figname))
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-x', type=str, default='d')
+    parser.add_argument('-y', type=str, default=None)
+    parser.add_argument('--root_path', type=str)
+    parser.add_argument('--experiment', type=str)
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    experiment = "n5000_dhr_3_rep"
-    root_path = "/Volumes/T5 EVO/Overfitting/out/loss/"
+    args = parse_args()
+    experiment = args.experiment
+    root_path = args.root_path
     data_dir = os.path.join(root_path, experiment)
     save_dir = os.path.join(root_path, experiment+"_plots")
     results = collect_results(data_dir)
-    plot_across_var(results, x='d', y='r', save_path=save_dir)
+    plot_across_var(results, x=args.x, y=args.y, save_path=save_dir)
