@@ -4,23 +4,17 @@ import numpy as np
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
-from data_analysis.data_utils import collect_results, process_df
+from data_analysis.data_utils import collect_results, process_df, compute_diff
 
 
 if __name__ == "__main__":
-    experiment = "N1000_dhl"
+    experiment = "N1000_dhl_up_to_16l"
     root_path = "/Volumes/T5 EVO/Overfitting/out/loss/"
     data_dir = os.path.join(root_path, experiment)
     save_dir = os.path.join(root_path, experiment+"_plots")
     results = collect_results(data_dir)
     df, included_vars = process_df(results)
-    # Pivot the dataframe to have separate columns for train, val, and test
-    df_pivot = df.pivot_table(index=['d', 'l', 'h'], columns='Key', values='Mean').reset_index()
-
-    # Calculate performance differences
-    df_pivot['train_val_diff'] = df_pivot['train'] - df_pivot['val']
-    df_pivot['val_test_diff'] = df_pivot['val'] - df_pivot['test']
-
+    df_pivot = compute_diff(df, indices=['d', 'l', 'h'])
     # Choose which performance difference to analyze
     y = df_pivot['val_test_diff']  # or df_pivot['train_val_diff']
 

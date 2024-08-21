@@ -118,3 +118,10 @@ def process_df(df):
         print("Unknown format")
 
     return df, included_vars
+
+
+def compute_diff(df, indices):
+    df_pivot = df.pivot_table(index=indices, columns='Key', values='Mean').reset_index()
+    df_pivot['train_val_diff'] = df_pivot['train'] - df_pivot['val']
+    df_pivot['val_test_diff'] = df_pivot['val'] - df_pivot['test']
+    return df_pivot
