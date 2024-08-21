@@ -16,10 +16,10 @@ from model.trainer import Trainer
 import utils
 
 
-local_root_path = "/Volumes/T5 EVO/Overfitting/cov_data"
-local_save_path = "/Volumes/T5 EVO/Overfitting/out/"
-remote_root_path = "/local_storage/datasets/nonar/Overfitting/cov_data"
-remote_save_path = "/Midgard/home/nonar/data/Overfitting/"
+# local_root_path = "/Volumes/T5 EVO/Overfitting/cov_data"
+# local_save_path = "/Volumes/T5 EVO/Overfitting/out/"
+# remote_root_path = "/local_storage/datasets/nonar/Overfitting/cov_data"
+# remote_save_path = "/Midgard/home/nonar/data/Overfitting/"
 
 
 def seed_everything(seed_val):
@@ -43,6 +43,8 @@ def parse_args():
     parser.add_argument('--cov_file', type=str, default=None)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--experiment', type=str, default='test')
+    parser.add_argument('--save_path', type=str, default='/local_storage/datasets/nonar/Overfitting/cov_data')
+    parser.add_argument('--root_path', type=str, default='/Midgard/home/nonar/data/Overfitting/')
     return parser.parse_args()
 
 
@@ -51,8 +53,11 @@ if __name__ == "__main__":
 
     args = parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    root_path = remote_root_path if remote else local_root_path
-    save_path = remote_save_path if remote else local_save_path
+    print("device: ", device)
+    # root_path = remote_root_path if remote else local_root_path
+    # save_path = remote_save_path if remote else local_save_path
+    root_path = args.root_path
+    save_path = args.save_path
     os.makedirs(save_path, exist_ok=True)
     save_path = os.path.join(save_path, args.experiment)
     os.makedirs(save_path, exist_ok=True)
@@ -97,6 +102,8 @@ if __name__ == "__main__":
             save_dir = str(d) + "d_" + str(hidden_size) + 'h_' + str(r) 
         elif variables[-1] in ['dhl', 'lhd', 'hdl', 'dlh', 'ldh', 'hld']:
             save_dir = str(d) + "d_" + str(hidden_size) + 'h_' + str(n_layers) + 'l'
+        elif variables[-1] in ['dnl', 'lnd', 'ndl', 'dln', 'ldn', 'nld']:
+            save_dir = str(d) + "d_" + str(n) + 'n_' + str(n_layers) + 'l'
         else:
             save_dir = args.experiment
 
