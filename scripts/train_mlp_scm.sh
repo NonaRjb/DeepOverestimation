@@ -7,7 +7,7 @@
 #SBATCH --mail-user nonar@kth.se
 #SBATCH --output /Midgard/home/%u/Overfitting/logs/cluster_logs/%A_%a_slurm.out
 #SBATCH --error  /Midgard/home/%u/Overfitting/logs/cluster_logs/%A_%a_slurm.err
-#SBATCH --array=1-400%25
+#SBATCH --array=1-512%32
 
 # Check job environment
 echo "JOB:  ${SLURM_JOB_ID}"
@@ -27,9 +27,9 @@ else
 fi
 
 d_array=(4 8 16 32 64 128 256 512)
-h_array=(4 8 16 32 64 128 256 512 1024 2048)
+h_array=(4 8 16 32 64 128 256 512)
 # r_array=(0.5 0.25 0.125 0.0625 0.03125 0.015625 0.0078125)
-l_array=(1 2 4 8 16)
+l_array=(1 2 4 8 16 32 64 128)
 
 # d=${d_array[`expr $((SLURM_ARRAY_TASK_ID-1)) % ${#d_array[@]}`]}
 # h=${h_array[`expr $((SLURM_ARRAY_TASK_ID-1)) % ${#h_array[@]}`]}
