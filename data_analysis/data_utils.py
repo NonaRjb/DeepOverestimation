@@ -62,7 +62,9 @@ def process_df(df):
     pattern_dd_r = r'^\d+d_\d+\.\d+$'  # Matches Dd_r where D is an integer and r is a float
     pattern_dd_hh = r'^\d+d_\d+h$'  # Matches Dd_Hh where D and H are both integers
     pattern_hh_r = r'^\d+h_\d+\.\d+$'  # Matches Hh_r where H is an integer and r is a float
-    pattern_dd_hh_r = r'^\d+d_\d+h_\d+\.\d+$' # Matches Dd_Hh_r where D and H are both integers and r is a float
+    pattern_dd_hh_r = r'^\d+d_\d+h_\d+\.\d+$'  # Matches Dd_Hh_r where D and H are both integers and r is a float
+    pattern_dd_hh_ll = r'^\d+d_\d+h_\d+l$'
+    pattern_dd_nn_ll = r'^\d+d_\d+n_\d+l$'
     included_vars = None
 
     sample_input = df['Input'].iloc[0]  # Get the first 'Input' value to check the pattern
@@ -96,7 +98,30 @@ def process_df(df):
         df['r'] = df['Input'].str.extract(r'h_(\d+\.\d+)')[0].astype(float)
         included_vars = ['d', 'h', 'r']
 
+    elif re.match(pattern_dd_hh_ll, sample_input):
+        print("Detected format: Dd_Hh_Ll")
+        # Extract D and H and r
+        df['d'] = df['Input'].str.extract(r'(\d+)d')[0].astype(int)
+        df['h'] = df['Input'].str.extract(r'd_(\d+)h')[0].astype(int)
+        df['l'] = df['Input'].str.extract(r'h_(\d+)l')[0].astype(int)
+        included_vars = ['d', 'h', 'l']
+
+    elif re.match(pattern_dd_nn_ll, sample_input):
+        print("Detected format: Dd_Nn_Ll")
+        # Extract D and H and r
+        df['d'] = df['Input'].str.extract(r'(\d+)d')[0].astype(int)
+        df['n'] = df['Input'].str.extract(r'd_(\d+)n')[0].astype(int)
+        df['l'] = df['Input'].str.extract(r'n_(\d+)l')[0].astype(int)
+        included_vars = ['d', 'n', 'l']
+
     else:
         print("Unknown format")
 
     return df, included_vars
+
+
+def compute_diff(df, indices):
+    df_pivot = df.pivot_table(index=indices, columns='Key', values='Mean').reset_index()
+    df_pivot['train_val_diff'] = df_pivot['train'] - df_pivot['val']
+    df_pivot['val_test_diff'] = df_pivot['val'] - df_pivot['test']
+    return df_pivot

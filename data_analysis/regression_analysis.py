@@ -4,28 +4,22 @@ import numpy as np
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
-from data_analysis.data_utils import collect_results, process_df
+from data_analysis.data_utils import collect_results, process_df, compute_diff
 
 
 if __name__ == "__main__":
-    experiment = "n5000_dhr_3_rep"
+    experiment = "N1000_dhl_up_to_16l"
     root_path = "/Volumes/T5 EVO/Overfitting/out/loss/"
     data_dir = os.path.join(root_path, experiment)
     save_dir = os.path.join(root_path, experiment+"_plots")
     results = collect_results(data_dir)
     df, included_vars = process_df(results)
-    # Pivot the dataframe to have separate columns for train, val, and test
-    df_pivot = df.pivot_table(index=['d', 'r', 'h'], columns='Key', values='Mean').reset_index()
-
-    # Calculate performance differences
-    df_pivot['train_val_diff'] = df_pivot['train'] - df_pivot['val']
-    df_pivot['val_test_diff'] = df_pivot['val'] - df_pivot['test']
-
+    df_pivot = compute_diff(df, indices=['d', 'l', 'h'])
     # Choose which performance difference to analyze
     y = df_pivot['val_test_diff']  # or df_pivot['train_val_diff']
 
     # Independent variables
-    X = df_pivot[['d', 'r', 'h']]
+    X = df_pivot[['d', 'l', 'h']]
     X = sm.add_constant(X)  # Add constant for intercept
 
     # Perform linear regression
@@ -50,12 +44,15 @@ if __name__ == "__main__":
     #
     # plt.show()
 
+    var_to_plot = 'l'
     constant_d_value = 256
-    constant_r_value = 2**(-5)
-    df_subset = df_pivot[(df_pivot['d'] == constant_d_value) & (df_pivot['r'] == constant_r_value)]
+    # constant_r_value = 2**(-5)
+    constant_h_value = 8
+    constant_l_value = 2
+    df_subset = df_pivot[(df_pivot['d'] == constant_d_value) & (df_pivot['h'] == constant_h_value)]
 
     # Regression on subset 2 (h vs performance_diff)
-    X2 = np.log2(df_subset[['h']])
+    X2 = np.log2(df_subset[['l']])
     y2 = df_subset['val_test_diff']
     X2 = sm.add_constant(X2)  # Adds the intercept term to the model
     model2 = sm.OLS(y2, X2).fit()
@@ -68,10 +65,10 @@ if __name__ == "__main__":
 
     fig2, ax = plt.subplots(figsize=(8, 6))
 
-    ax.plot(X2['h'], y2, "o", label="data")
-    ax.plot(X2['h'], model2.fittedvalues, "r--.", label="OLS")
-    ax.plot(X2['h'], iv_u, "r--")
-    ax.plot(X2['h'], iv_l, "r--")
+    ax.plot(X2[var_to_plot], y2, "o", label="data")
+    ax.plot(X2[var_to_plot], model2.fittedvalues, "r--.", label="OLS")
+    ax.plot(X2[var_to_plot], iv_u, "r--")
+    ax.plot(X2[var_to_plot], iv_l, "r--")
     ax.legend(loc="best")
 
     plt.show()
