@@ -49,7 +49,6 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    remote = True
 
     args = parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
