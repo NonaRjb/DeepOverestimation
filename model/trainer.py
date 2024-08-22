@@ -40,7 +40,7 @@ class Trainer:
             loss_epoch = []
             y_true = []
             y_pred = []
-            progress_bar = tqdm(train_data_loader, disable=True)
+            progress_bar = tqdm(train_data_loader, disable=False)
             for x, y in progress_bar:
                 self.optimizer.zero_grad()
                 x = x.to(self.device)

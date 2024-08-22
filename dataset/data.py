@@ -55,6 +55,7 @@ class Synthetic_EEG(Dataset):
 
         data = np.zeros((self.n_channels, self.n_trials*self.n_samples))
         for ch in range(self.n_channels):
+            print(f"generate data for channel {ch}")
             data[ch, :] += noise_amp * generate_noise_eeg(self.n_samples, self.n_trials, fs)
 
         temp_data = np.reshape(data, (self.n_channels, self.n_samples, self.n_trials))
@@ -75,6 +76,7 @@ class Synthetic_EEG(Dataset):
             sample (torch.Tensor): Randomly generated sample.
         """
         sample = torch.from_numpy(self.samples[idx, ...]).float()
+        sample = sample.unsqueeze(0)
         label = self.labels[idx]
 
         return sample, label

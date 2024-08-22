@@ -53,7 +53,8 @@ class ConvNet(nn.Module):
         x = x.view(x.size(0), -1)
 
         x = self.fc(x)
-        return self.activation(x)
+        # return self.activation(x)
+        return x
 
 
 if __name__ == "__main__":

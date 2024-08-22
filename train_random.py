@@ -43,8 +43,8 @@ def parse_args():
     parser.add_argument('--cov_file', type=str, default=None)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--experiment', type=str, default='test')
-    parser.add_argument('--save_path', type=str, default='/local_storage/datasets/nonar/Overfitting/cov_data')
-    parser.add_argument('--root_path', type=str, default='/Midgard/home/nonar/data/Overfitting/')
+    parser.add_argument('--root_path', type=str, default='/local_storage/datasets/nonar/Overfitting/cov_data')
+    parser.add_argument('--save_path', type=str, default='/Midgard/home/nonar/data/Overfitting/')
     return parser.parse_args()
 
 

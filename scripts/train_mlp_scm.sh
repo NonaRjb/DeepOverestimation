@@ -55,4 +55,5 @@ l=${l_array[$l_index]}
 # Print values (or use them in your script)
 echo "Running job with d=$d, h=$h, l=$l"
 
-python train.py -b 64 --lr 0.0001 --epochs 500 --hidden_size "$h" -l "$l" -n 1000 --n_test 5000 -d "$d" -r 2 --seed 42 --experiment N1000_dhl
+python train_random.py -b 64 --lr 0.0001 --epochs 500 --hidden_size "$h" -l "$l" -n 1000 --n_test 5000  \
+-d "$d" -r 2 --seed 42 --save_path "/Midgard/home/nonar/data/Overfitting/" --experiment N1000_dhl
