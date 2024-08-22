@@ -7,7 +7,7 @@
 #SBATCH --mail-user nonar@kth.se
 #SBATCH --output /Midgard/home/%u/Overfitting/logs/cluster_logs/%A_%a_slurm.out
 #SBATCH --error  /Midgard/home/%u/Overfitting/logs/cluster_logs/%A_%a_slurm.err
-#SBATCH --array=1-512%32
+#SBATCH --array=1-112%20
 
 # Check job environment
 echo "JOB:  ${SLURM_JOB_ID}"
@@ -26,34 +26,32 @@ else
   conda activate eegnet_pytorch
 fi
 
-d_array=(4 8 16 32 64 128 256 512)
-h_array=(4 8 16 32 64 128 256 512)
-# r_array=(0.5 0.25 0.125 0.0625 0.03125 0.015625 0.0078125)
+# d_array=(4 8 16 32 64 128 256 512)
+h_array=(4 8 16 32 64 128 256)
 l_array=(1 2 4 8 16 32 64 128)
+op_array=("sgd" "adamw")
 
-# d=${d_array[`expr $((SLURM_ARRAY_TASK_ID-1)) % ${#d_array[@]}`]}
-# h=${h_array[`expr $((SLURM_ARRAY_TASK_ID-1)) % ${#h_array[@]}`]}
-# r=${r_array[`expr $((SLURM_ARRAY_TASK_ID-1)) / ${#h_array[@]}`]}
-# Calculate d, h, and r based on the SLURM_ARRAY_TASK_ID
-
-num_d=${#d_array[@]}
+# num_d=${#d_array[@]}
 num_h=${#h_array[@]}
 num_l=${#l_array[@]}
+num_o=${#op_array[@]}
 
 idx=$SLURM_ARRAY_TASK_ID-1
 
 # Determine the indices
-d_index=$((idx % num_d))
-h_index=$(((idx / num_d) % num_h))
-l_index=$(((idx / (num_d * num_h)) % num_l))
+# d_index=$((idx % num_d))
+op_index=$((idx % num_o))
+h_index=$(((idx / num_o) % num_h))
+l_index=$(((idx / (num_o * num_h)) % num_l))
 
 # Get the corresponding values
-d=${d_array[$d_index]}
+# d=${d_array[$d_index]}
+op=${op_array[$op_index]}
 h=${h_array[$h_index]}
 l=${l_array[$l_index]}
 
 # Print values (or use them in your script)
-echo "Running job with d=$d, h=$h, l=$l"
+echo "Running job with op=$op, h=$h, l=$l"
 
 python train_random.py -b 64 --lr 0.0001 --epochs 500 --hidden_size "$h" -l "$l" -n 1000 --n_test 5000  \
--d "$d" -r 2 --seed 42 --save_path "/Midgard/home/nonar/data/Overfitting/" --experiment N1000_dhl
+-d 64 -r 2 --optim "$op" --seed 42 --save_path "/Midgard/home/nonar/data/Overfitting/" --experiment N1000_ohl

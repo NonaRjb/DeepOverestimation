@@ -103,6 +103,8 @@ if __name__ == "__main__":
             save_dir = str(d) + "d_" + str(hidden_size) + 'h_' + str(n_layers) + 'l'
         elif variables[-1] in ['dnl', 'lnd', 'ndl', 'dln', 'ldn', 'nld']:
             save_dir = str(d) + "d_" + str(n) + 'n_' + str(n_layers) + 'l'
+        elif variables[-1] in ['ohl', 'lho', 'hol', 'olh', 'loh', 'hlo']:
+            save_dir = optim_name + "o_" + str(hidden_size) + 'h_' + str(n_layers) + 'l'
         else:
             save_dir = args.experiment
 
@@ -117,6 +119,8 @@ if __name__ == "__main__":
     val_scores = []
     test_scores = []
     train_scores = []
+    val_losses = []
+    test_losses = []
     best_epochs = []
 
     for j, (train_index, val_index) in enumerate(
@@ -148,9 +152,17 @@ if __name__ == "__main__":
         train_scores.append(best_model['train_auroc'].numpy())
         val_scores.append(best_model['auroc'].numpy())
         test_scores.append(test_auroc.numpy())
+        val_losses.append(best_model['loss'])
+        test_losses.append(test_loss)
         best_epochs.append(best_model['epoch'])
 
-    scores = {'train': np.asarray(train_scores), 'val': np.asarray(val_scores), 'test': np.asarray(test_scores), 'epoch': best_epochs}
+    scores = {
+        'train': np.asarray(train_scores), 
+        'val': np.asarray(val_scores), 
+        'test': np.asarray(test_scores), 
+        'val_loss': np.asarray(val_losses),
+        'test_loss': np.asarray(test_loss),
+        'epoch': best_epochs}
     with open(os.path.join(save_path, "scores.pkl"), 'wb') as f:
         pickle.dump(scores, f)
     print(np.mean(val_scores), np.mean(test_scores))
