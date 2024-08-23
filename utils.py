@@ -2,6 +2,8 @@ import numpy as np
 from scipy.io import loadmat
 import os
 
+import model.architectures as architectures
+
 
 def load_cov_mat(root_path, filename, d):
     if filename is None:
@@ -71,3 +73,19 @@ def generate_noise_eeg(frames, epochs, fs):
 
     return signal
 
+
+def load_model(model_name, **kwargs):
+    if model_name == "convnet":
+        return architectures.ConvNet(n_channels=kwargs['n_channels'], n_classes=kwargs['n_classes'])
+    elif model_name == "resnet1d":
+        return architectures.ResNet1d(
+            n_channels=kwargs["n_channels"],
+            n_samples=kwargs["n_samples"],
+            net_filter_size=[64, 128, 196, 256, 320],
+            net_seq_length=[kwargs['n_samples'], 128, 64, 32, 16],
+            n_classes=kwargs["n_classes"],
+            kernel_size=17,
+            dropout_rate=0.5
+        )
+    else:
+        raise NotImplementedError

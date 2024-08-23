@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--optim', type=str, default='adamw')
+    parser.add_argument('--model', type=str, default="convnet")
     parser.add_argument('-n', '--n_samples', type=int, default=1000)
     parser.add_argument('--n_test', type=int, default=1000)
     parser.add_argument('--n_channels', type=int, default=32)
@@ -114,7 +115,7 @@ if __name__ == "__main__":
         'val': np.asarray(val_scores), 
         'test': np.asarray(test_scores), 
         'val_loss': np.asarray(val_losses),
-        'test_loss': np.asarray(test_loss),
+        'test_loss': np.asarray(test_losses),
         'epoch': best_epochs}
     with open(os.path.join(save_path, "scores.pkl"), 'wb') as f:
         pickle.dump(scores, f)

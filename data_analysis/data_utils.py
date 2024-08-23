@@ -39,6 +39,10 @@ def collect_results(base_dir):
             scores_file = os.path.join(input_path, 'scores.pkl')
             if os.path.exists(scores_file):
                 scores_dict = read_pickle(scores_file)
+                # if 'val_loss' in scores_dict.keys():
+                #     del scores_dict['val_loss']
+                # if 'test_loss' in scores_dict.keys():
+                #     del scores_dict['test_loss']
                 means, medians, se, percentile_25, percentile_75 = calc_stats(scores_dict)
                 for key in scores_dict.keys():
                     result_row = {
@@ -65,6 +69,7 @@ def process_df(df):
     pattern_dd_hh_r = r'^\d+d_\d+h_\d+\.\d+$'  # Matches Dd_Hh_r where D and H are both integers and r is a float
     pattern_dd_hh_ll = r'^\d+d_\d+h_\d+l$'
     pattern_dd_nn_ll = r'^\d+d_\d+n_\d+l$'
+    pattern_oo_hh_ll = r'^(.*?)o_(\d+)h_(\d+)l$'
     included_vars = None
 
     sample_input = df['Input'].iloc[0]  # Get the first 'Input' value to check the pattern
@@ -105,6 +110,14 @@ def process_df(df):
         df['h'] = df['Input'].str.extract(r'd_(\d+)h')[0].astype(int)
         df['l'] = df['Input'].str.extract(r'h_(\d+)l')[0].astype(int)
         included_vars = ['d', 'h', 'l']
+
+    elif re.match(pattern_oo_hh_ll, sample_input):
+        print("Detected format: Oo_Hh_Ll")
+        # Extract D and H and r
+        df['o'] = df['Input'].str.extract(r'(.*?)o')[0].astype(str)
+        df['h'] = df['Input'].str.extract(r'o_(\d+)h')[0].astype(int)
+        df['l'] = df['Input'].str.extract(r'h_(\d+)l')[0].astype(int)
+        included_vars = ['o', 'h', 'l']
 
     elif re.match(pattern_dd_nn_ll, sample_input):
         print("Detected format: Dd_Nn_Ll")

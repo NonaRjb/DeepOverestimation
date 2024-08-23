@@ -33,6 +33,7 @@ def line_plot_across_var(df, x, y, save_path=None):
 
             # Set x-axis to logarithmic scale with base 2
             ax.set_xscale('log', base=2)
+            ax.set_ylim([0.0, 0.15])
             ax.grid(True)
 
             # Ensure the legend title and entries are correct
