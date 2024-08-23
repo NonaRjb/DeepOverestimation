@@ -56,18 +56,20 @@ if __name__ == "__main__":
     optim_name = args.optim
     lr = args.lr
     weight_decay = 0.
+    # architecture
+    model_name = args.model
     # data vars
     n = args.n_samples
     n_test = args.n_test
     ch = args.n_channels
-    frame = args.frame_size  # TODO: currently only works with size 125 (because of the linear layer input size that is hard-coded)
+    frame = args.frame_size  # TODO: currently only works with size 128 (because the linear layer input size that is hard-coded)
 
-    save_dir = optim_name
+    save_dir = "N" + str(n) + "_" + model_name + "_" + optim_name
     save_path = os.path.join(save_path, save_dir)
     os.makedirs(save_path, exist_ok=True)
 
-    test_data = Synthetic_EEG(n_trials=n_test, n_channels=ch, n_samples=frame, seed=seed+test_offset)
-    data = Synthetic_EEG(n_trials=n, n_channels=ch, n_samples=frame, seed=seed)
+    test_data = Synthetic_EEG(n_trials=n_test, n_channels=ch, n_samples=frame, fs=256, seed=seed+test_offset)
+    data = Synthetic_EEG(n_trials=n, n_channels=ch, n_samples=frame, fs=256, seed=seed)
     g = torch.Generator().manual_seed(seed)
     inner_cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=seed)
 
@@ -89,7 +91,8 @@ if __name__ == "__main__":
         val_loader = DataLoader(data, batch_size=batch_size, sampler=val_sub_sampler, drop_last=False)
         test_loader = DataLoader(test_data, batch_size=batch_size, drop_last=False)
 
-        model = ConvNet(n_channels=ch) # TODO: softmax in the model and sigmoid in the trainer (currently commented softmax)
+        model = utils.load_model(model_name=model_name, n_channels=ch, n_samples=frame, n_classes=2)
+        # model = ConvNet(n_channels=ch) # TODO: softmax in the model and sigmoid in the trainer (currently commented softmax)
         if optim_name == "adamw":
             optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay, amsgrad=True)
         elif optim_name == "adam":

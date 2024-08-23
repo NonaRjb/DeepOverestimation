@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 from collections import OrderedDict
 
 
@@ -40,7 +41,7 @@ class ConvNet(nn.Module):
             nn.BatchNorm2d(40)
         )
         self.avg_pool = nn.AvgPool2d(kernel_size=(1, 15), stride=(1, 3))
-        self.fc = nn.Linear(in_features=1160, out_features=n_classes if n_classes > 2 else 1)
+        self.fc = nn.Linear(in_features=1200, out_features=n_classes if n_classes > 2 else 1)
         self.activation = nn.Softmax()
 
     def forward(self, x):
@@ -203,6 +204,8 @@ class ResNet1d(nn.Module):
         self.n_blk = len(blocks_dim)
 
     def forward(self, x):
+
+        x = x.squeeze(1)
         """Implement ResNet1d forward propagation"""
         # First layers
         x = self.conv1(x)
