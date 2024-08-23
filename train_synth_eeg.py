@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--optim', type=str, default='adamw')
+    parser.add_argument('--model', type=str, default="convnet")
     parser.add_argument('-n', '--n_samples', type=int, default=1000)
     parser.add_argument('--n_test', type=int, default=1000)
     parser.add_argument('--n_channels', type=int, default=32)

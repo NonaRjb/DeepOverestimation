@@ -33,6 +33,7 @@ def line_plot_across_var(df, x, y, save_path=None):
 
             # Set x-axis to logarithmic scale with base 2
             ax.set_xscale('log', base=2)
+            ax.set_ylim([0.0, 0.15])
             ax.grid(True)
 
             # Ensure the legend title and entries are correct
@@ -131,7 +132,7 @@ def line_plot_avg(df, x, y, save_path=None):
 
         # Optionally save the plot
         if save_path:
-            plt.savefig(os.path.join(save_path, f'combined_plot_with_avg_and_sd_{fixed_var}.png'))
+            plt.savefig(os.path.join(save_path, f'combined_plot_with_avg_and_sd_{x}{y}.png'))
 
         # Show the plot
         plt.show()
@@ -267,16 +268,23 @@ def parse_args():
     parser.add_argument('-y', type=str, default=None)
     parser.add_argument('--root_path', type=str)
     parser.add_argument('--experiment', type=str)
+    parser.add_argument('--task', type=str)
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
     experiment = args.experiment
+    task = args.task
     root_path = args.root_path
     data_dir = os.path.join(root_path, experiment)
     save_dir = os.path.join(root_path, experiment+"_plots")
     results = collect_results(data_dir)
-    # bar_plot_across_var(results, x=args.x, y=args.y, save_path=save_dir)
-    line_plot_avg(results, x='h', y='d', save_path=save_dir)
-    # line_plot_across_var(results, x='l', y='h', save_path=save_dir)
+    if task == "bar_plot_fixed_var":
+        bar_plot_across_var(results, x=args.x, y=args.y, save_path=save_dir)
+    elif task == "line_plot_averaged":
+        line_plot_avg(results, x=args.x, y=args.y, save_path=save_dir)
+    elif task == "line_plot_fixed_var":
+        line_plot_across_var(results, x=args.x, y=args.y, save_path=save_dir)
+    else:
+        raise NotImplementedError
