@@ -61,7 +61,8 @@ if __name__ == "__main__":
     ch = args.n_channels
     frame = args.frame_size  # TODO: currently only works with size 125 (because of the linear layer input size that is hard-coded)
 
-    save_dir = args.experiment
+    save_dir = optim_name
+    save_path = os.path.join(save_path, save_dir)
     os.makedirs(save_path, exist_ok=True)
 
     test_data = Synthetic_EEG(n_trials=n_test, n_channels=ch, n_samples=frame, seed=seed+test_offset)
@@ -114,7 +115,7 @@ if __name__ == "__main__":
         'val': np.asarray(val_scores), 
         'test': np.asarray(test_scores), 
         'val_loss': np.asarray(val_losses),
-        'test_loss': np.asarray(test_loss),
+        'test_loss': np.asarray(test_losses),
         'epoch': best_epochs}
     with open(os.path.join(save_path, "scores.pkl"), 'wb') as f:
         pickle.dump(scores, f)
