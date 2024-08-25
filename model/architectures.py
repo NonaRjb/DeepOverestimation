@@ -29,7 +29,7 @@ class MLP(nn.Module):
 
 
 class ConvNet(nn.Module):
-    def __init__(self, n_channels, n_classes=2):
+    def __init__(self, n_channels, n_samples=128, n_classes=2):
         super(ConvNet, self).__init__()
 
         self.temporal_block = nn.Sequential(
@@ -41,7 +41,17 @@ class ConvNet(nn.Module):
             nn.BatchNorm2d(40)
         )
         self.avg_pool = nn.AvgPool2d(kernel_size=(1, 15), stride=(1, 3))
-        self.fc = nn.Linear(in_features=1200, out_features=n_classes if n_classes > 2 else 1)
+
+        encoder = nn.Sequential(
+            self.temporal_block,
+            self.spatial_block,
+            self.avg_pool
+        )
+
+        encoding_size = encoder(torch.zeros(1, 1, n_channels, n_samples)).contiguous().view(-1).size()[0]
+        print(f"input size of the FC layer: {encoding_size}")
+
+        self.fc = nn.Linear(in_features=encoding_size, out_features=n_classes if n_classes > 2 else 1)  # 1200 for n_samples 128
         self.activation = nn.Softmax()
 
     def forward(self, x):

@@ -356,7 +356,10 @@ def generate_noise_eeg(frames, epochs, fs):
 
 def load_model(model_name, **kwargs):
     if model_name == "convnet":
-        return architectures.ConvNet(n_channels=kwargs['n_channels'], n_classes=kwargs['n_classes'])
+        return architectures.ConvNet(
+            n_channels=kwargs['n_channels'], 
+            n_samples=kwargs['n_samples'], 
+            n_classes=kwargs['n_classes'])
     elif model_name == "resnet1d":
         return architectures.ResNet1d(
             n_channels=kwargs["n_channels"],

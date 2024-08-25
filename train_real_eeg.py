@@ -1,6 +1,7 @@
 import os
 import pickle
 from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn import metrics
 from torch.utils.data import DataLoader
 from torch.optim import AdamW, Adam, SGD
 import torch.nn as nn
@@ -28,8 +29,8 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--optim', type=str, default='adamw')
     parser.add_argument('--model', type=str, default="convnet")
-    parser.add_argument('-n', '--n_samples', type=int, default=1000)
-    parser.add_argument('--n_test', type=int, default=1000)
+    # parser.add_argument('-n', '--n_samples', type=int, default=1000)
+    # parser.add_argument('--n_test', type=int, default=1000)
     parser.add_argument('--sid', type=int, default=1)
     parser.add_argument('--modality', type=str)
     parser.add_argument('--tmin', type=float, default=0.0)
@@ -65,14 +66,14 @@ if __name__ == "__main__":
     # data vars
     subject = args.sid
     modality = args.modality
-    n = args.n_samples
-    n_test = args.n_test
+    # n = args.n_samples
+    # n_test = args.n_test
     ch = utils.get_n_channels(modality)
     tmin = args.tmin
     tmax = args.tmax
     fs_new = 256
 
-    save_dir = "N" + str(n) + "_" + model_name + "_" + optim_name
+    save_dir = "real_" + modality + "_" + "s" + str(subject) + "_" + model_name
     save_path = os.path.join(save_path, save_dir)
     os.makedirs(save_path, exist_ok=True)
 
@@ -87,7 +88,7 @@ if __name__ == "__main__":
     # to replicate the random data and synthetic EEG data.
     # If we take the whole signal from before stimulus onset, it will be from the no-odor class
     # So, we know that all signals are from the same class and there is no actual difference
-    if tmin < 0 and tmax < 0:
+    if tmax < 0:
         labels_array = np.random.choice([0, 1], size=n_trials, p=[0.5, 0.5])
 
     data = Real_EEG(
@@ -111,6 +112,7 @@ if __name__ == "__main__":
     val_losses = []
     test_losses = []
     best_epochs = []
+    roc_essentials = {}
 
     for i, (train_all_index, test_index) in enumerate(outer_cv.split(data.data, data.labels)):
         for j, (train_index, val_index) in enumerate(
@@ -142,7 +144,8 @@ if __name__ == "__main__":
             trainer = Trainer(model, optimizer, loss, epochs, batch_size, device=device)
             best_model = trainer.train(train_loader, val_loader)
             model.load_state_dict(best_model['model_state_dict'])
-            test_loss, test_auroc = trainer.evaluate(model, test_loader)
+            test_loss, test_auroc, y_true_test, y_pred_test = trainer.evaluate(model, test_loader)
+            _, _, y_true_val, y_pred_val = trainer.evaluate(model, val_loader)
             print(f"Test Loss = {test_loss}, Test ROC-AUC = {test_auroc}\n")
             train_scores.append(best_model['train_auroc'].numpy())
             val_scores.append(best_model['auroc'].numpy())
@@ -150,6 +153,13 @@ if __name__ == "__main__":
             val_losses.append(best_model['loss'])
             test_losses.append(test_loss)
             best_epochs.append(best_model['epoch'])
+
+            roc_essentials[str(i * 30 + j)]={
+                'y_true_test': y_true_test,
+                'y_pred_test': y_pred_test,
+                'y_true_val': y_true_val,
+                'y_pred_val': y_pred_val
+            }
 
     scores = {
         'train': np.asarray(train_scores),
@@ -160,6 +170,8 @@ if __name__ == "__main__":
         'epoch': best_epochs}
     with open(os.path.join(save_path, "scores.pkl"), 'wb') as f:
         pickle.dump(scores, f)
+    with open(os.path.join(save_path, "roc.pkl"), 'wb') as f:
+        pickle.dump(roc_essentials, f)
     print(np.mean(val_scores), np.mean(test_scores))
 
 

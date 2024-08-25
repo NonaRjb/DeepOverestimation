@@ -46,6 +46,9 @@ class Trainer:
                 x = x.to(self.device)
                 y = y.to(self.device)
 
+                if len(y.shape) > 1:
+                    y = y.squeeze(1)
+
                 preds = self.model(x)
                 if len(preds.shape) > 1:
                     preds = preds.squeeze(dim=1)
@@ -62,7 +65,7 @@ class Trainer:
                 train_auroc = self.auroc(torch.stack(y_pred).detach().cpu().float(),
                                          torch.stack(y_true).detach().cpu())
 
-            val_loss, val_auroc = self.evaluate(self.model, val_data_loader)
+            val_loss, val_auroc, _, _ = self.evaluate(self.model, val_data_loader)
 
             # Store metrics in history
             self.history['train_loss'].append(train_loss)
@@ -109,17 +112,21 @@ class Trainer:
             for x, y in progress_bar:
                 x = x.to(self.device)
                 y = y.to(self.device)
+                if len(y.shape) > 1:
+                    y = y.squeeze(1)
                 preds = model(x)
                 if len(preds.shape) > 1:
                     preds = preds.squeeze(dim=1)
                 loss_val = self.loss(preds, y.float())
                 loss_epoch.append(loss_val.item())
                 y_true.extend(y)
-                y_pred.extend(preds)
+                y_pred.extend(torch.sigmoid(preds))
             mean_loss_epoch = np.mean(loss_epoch)
             auroc = self.auroc(torch.stack(y_pred).detach().cpu().float(),
                                torch.stack(y_true).detach().cpu())
-        return mean_loss_epoch, auroc
+            y_pred = torch.stack(y_pred).detach().cpu().float().numpy()
+            y_true = torch.stack(y_true).detach().cpu().numpy()
+        return mean_loss_epoch, auroc, y_true, y_pred
 
     def plot_history(self):
 

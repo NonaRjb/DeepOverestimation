@@ -110,7 +110,6 @@ class Real_EEG(Dataset):
         self.subject_id = None
         self.fs = float(fs)
         self.time_vec = time_vec
-        self.class_weight = None
         self.modality = modality
         self.transform = transform
 
@@ -222,15 +221,15 @@ class Real_EEG(Dataset):
         self.time_vec = self.time_vec[self.t_min:self.t_max]
 
         # only consider high intensity odors
-        mask = np.logical_not(np.isin(self.labels.squeeze(), [1, 2, 4]))
-        self.source_data = self.source_data[mask, ...]
-        self.labels = self.labels[mask]
-        new_labels = [1. if y == 64 else 0. for y in self.labels]
-        self.labels = new_labels
-        class_0_count = new_labels.count(0.)
-        class_1_count = new_labels.count(1.)
+        if tmax > 0:
+            mask = np.logical_not(np.isin(self.labels.squeeze(), [1, 2, 4]))
+            self.source_data = self.source_data[mask, ...]
+            self.labels = self.labels[mask]
+            new_labels = [1. if y == 64 else 0. for y in self.labels]
+            self.labels = new_labels
+        class_0_count = list(self.labels).count(0.)
+        class_1_count = list(self.labels).count(1.)
         print(f"N(class 0) = {class_0_count}, N(class 1) = {class_1_count}")
-        self.class_weight = torch.tensor(class_0_count / class_1_count)
 
         self.data = self.source_data
         self.baseline = np.mean(self.data[..., self.baseline_min:self.baseline_max], axis=(0, -1), keepdims=True)
@@ -254,5 +253,6 @@ class Real_EEG(Dataset):
         sample = torch.from_numpy(sample)
         if self.transform:
             sample = self.transform(sample)
-        return sample, self.labels[item]
+        sample = sample.unsqueeze(0)
+        return sample.float(), self.labels[item]
 
