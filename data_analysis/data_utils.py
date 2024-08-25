@@ -39,10 +39,11 @@ def collect_results(base_dir):
             scores_file = os.path.join(input_path, 'scores.pkl')
             if os.path.exists(scores_file):
                 scores_dict = read_pickle(scores_file)
-                # if 'val_loss' in scores_dict.keys():
-                #     del scores_dict['val_loss']
-                # if 'test_loss' in scores_dict.keys():
-                #     del scores_dict['test_loss']
+                scores_dict['val-test'] = scores_dict['val'] - scores_dict['test']
+                if 'val_loss' in scores_dict.keys():
+                    del scores_dict['val_loss']
+                if 'test_loss' in scores_dict.keys():
+                    del scores_dict['test_loss']
                 means, medians, se, percentile_25, percentile_75 = calc_stats(scores_dict)
                 for key in scores_dict.keys():
                     result_row = {
@@ -70,6 +71,7 @@ def process_df(df):
     pattern_dd_hh_ll = r'^\d+d_\d+h_\d+l$'
     pattern_dd_nn_ll = r'^\d+d_\d+n_\d+l$'
     pattern_oo_hh_ll = r'^(.*?)o_(\d+)h_(\d+)l$'
+    pattern_nn_oo_mm = r'^N\d+_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
     included_vars = None
 
     sample_input = df['Input'].iloc[0]  # Get the first 'Input' value to check the pattern
@@ -126,7 +128,12 @@ def process_df(df):
         df['n'] = df['Input'].str.extract(r'd_(\d+)n')[0].astype(int)
         df['l'] = df['Input'].str.extract(r'n_(\d+)l')[0].astype(int)
         included_vars = ['d', 'n', 'l']
-
+    elif re.match(pattern_nn_oo_mm, sample_input):
+        print("Detected format: Nn_m_o")
+        df['n'] = df['Input'].str.extract(r'^N(\d+)_')[0].astype(int)
+        df['m'] = df['Input'].str.extract(r'^N\d+_([A-Za-z0-9]+)_')[0]
+        df['o'] = df['Input'].str.extract(r'^N\d+_[A-Za-z0-9]+_([A-Za-z0-9]+)$')[0]
+        included_vars = ['n', 'm', 'o']
     else:
         print("Unknown format")
 
@@ -138,3 +145,4 @@ def compute_diff(df, indices):
     df_pivot['train_val_diff'] = df_pivot['train'] - df_pivot['val']
     df_pivot['val_test_diff'] = df_pivot['val'] - df_pivot['test']
     return df_pivot
+
