@@ -147,7 +147,7 @@ if __name__ == "__main__":
         trainer = Trainer(model, optimizer, loss, epochs, batch_size, device=device)
         best_model = trainer.train(train_loader, val_loader)
         model.load_state_dict(best_model['model_state_dict'])
-        test_loss, test_auroc = trainer.evaluate(model, test_loader)
+        test_loss, test_auroc, _, _ = trainer.evaluate(model, test_loader)
         print(f"Test Loss = {test_loss}, Test ROC-AUC = {test_auroc}\n")
         train_scores.append(best_model['train_auroc'].numpy())
         val_scores.append(best_model['auroc'].numpy())

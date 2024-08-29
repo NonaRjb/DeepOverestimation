@@ -64,7 +64,7 @@ if __name__ == "__main__":
     ch = args.n_channels
     frame = args.frame_size  # TODO: currently only works with size 128 (because the linear layer input size that is hard-coded)
 
-    save_dir = "N" + str(n) + "_" + model_name + "_" + optim_name
+    save_dir = "n" + str(n) + "_ch" + str(ch) + "_f" + str(frame) + "_" + model_name
     save_path = os.path.join(save_path, save_dir)
     os.makedirs(save_path, exist_ok=True)
 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         trainer = Trainer(model, optimizer, loss, epochs, batch_size, device=device)
         best_model = trainer.train(train_loader, val_loader)
         model.load_state_dict(best_model['model_state_dict'])
-        test_loss, test_auroc = trainer.evaluate(model, test_loader)
+        test_loss, test_auroc, _, _ = trainer.evaluate(model, test_loader)
         print(f"Test Loss = {test_loss}, Test ROC-AUC = {test_auroc}\n")
         train_scores.append(best_model['train_auroc'].numpy())
         val_scores.append(best_model['auroc'].numpy())

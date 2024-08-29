@@ -366,6 +366,7 @@ def load_model(model_name, **kwargs):
             n_samples=kwargs["n_samples"],
             net_filter_size=[64, 128, 196, 256, 320],
             net_seq_length=[kwargs['n_samples'], 128, 64, 32, 16],
+            # net_seq_length=[kwargs['n_samples'], 64, 32, 16, 8],
             n_classes=kwargs["n_classes"],
             kernel_size=17,
             dropout_rate=0.5
