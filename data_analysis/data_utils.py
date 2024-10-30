@@ -72,6 +72,8 @@ def process_df(df):
     pattern_dd_nn_ll = r'^\d+d_\d+n_\d+l$'
     pattern_oo_hh_ll = r'^(.*?)o_(\d+)h_(\d+)l$'
     pattern_nn_oo_mm = r'^N\d+_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
+    pattern_mod_ss_model = r'^real_([A-Za-z]+)_s(\d+)_([A-Za-z0-9]+)$'
+    pattern_n_ch_f_model = r'^n(\d+)_ch(\d+)_f(\d+)_([A-Za-z0-9]+)$'
     included_vars = None
 
     sample_input = df['Input'].iloc[0]  # Get the first 'Input' value to check the pattern
@@ -134,6 +136,20 @@ def process_df(df):
         df['m'] = df['Input'].str.extract(r'^N\d+_([A-Za-z0-9]+)_')[0]
         df['o'] = df['Input'].str.extract(r'^N\d+_[A-Za-z0-9]+_([A-Za-z0-9]+)$')[0]
         included_vars = ['n', 'm', 'o']
+    elif re.match(pattern_mod_ss_model, sample_input):
+        print("Detected format: mod_ss_model")
+        df['mod'] = df['Input'].str.extract(r'^real_([A-Za-z]+)_')[0]
+        df['s'] = df['Input'].str.extract(r'_s(\d+)_')[0].astype(int)
+        df['m'] = df['Input'].str.extract(r'_s\d+_([A-Za-z0-9]+)$')[0]
+        included_vars = ['mod', 's', 'm']
+    elif re.match(pattern_n_ch_f_model, df['Input'][0]):  # Assuming the pattern is the same for all rows
+        print("Detected format: n_ch_f_model")
+        df['n'] = df['Input'].str.extract(r'^n(\d+)_')[0].astype(int)
+        df['ch'] = df['Input'].str.extract(r'_ch(\d+)_')[0].astype(int)
+        df['f'] = df['Input'].str.extract(r'_f(\d+)_')[0].astype(int)
+        df['m'] = df['Input'].str.extract(r'_f\d+_([A-Za-z0-9]+)$')[0]
+        included_vars = ['n', 'ch', 'f', 'm']
+
     else:
         print("Unknown format")
 
@@ -146,3 +162,27 @@ def compute_diff(df, indices):
     df_pivot['val_test_diff'] = df_pivot['val'] - df_pivot['test']
     return df_pivot
 
+
+def load_roc_data(root_dir):
+    roc_data = {}
+
+    for dir_name in os.listdir(root_dir):
+        dir_path = os.path.join(root_dir, dir_name)
+        if os.path.isdir(dir_path):
+            # Extract the participant number and model name
+            parts = dir_name.split('_')
+            participant = parts[2]  # The <S> part
+            model = parts[3]  # The <model> part
+
+            if model not in roc_data:
+                roc_data[model] = {}
+            if participant not in roc_data[model]:
+                roc_data[model][participant] = {}
+
+            # Load the roc.pkl file
+            roc_file = os.path.join(dir_path, 'roc.pkl')
+            if os.path.isfile(roc_file):
+                with open(roc_file, 'rb') as f:
+                    roc_data[model][participant] = pickle.load(f)
+
+    return roc_data
