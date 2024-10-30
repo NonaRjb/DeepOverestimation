@@ -1,15 +1,19 @@
 import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib
+from sklearn.metrics import roc_curve, auc, RocCurveDisplay
+from scipy.stats import sem
+from scipy.interpolate import interp1d
+from scipy.signal import savgol_filter
 import seaborn as sns
 import numpy as np
 import os
 
-from data_analysis.data_utils import collect_results, process_df, compute_diff
+from data_analysis.data_utils import collect_results, process_df, compute_diff, load_roc_data
 
 
-def bar_plot_dnl(df, d_val=None, n_val=None, save_path=None):
-    df_new, included_vars = process_df(df)
+def bar_plot_dnl(df_new, d_val=None, n_val=None, save_path=None):
 
     # Ensure 'd', 'h', 'l', and 'Key' columns are in the DataFrame
     required_columns = {'d', 'n', 'l', 'Key'}
@@ -30,7 +34,7 @@ def bar_plot_dnl(df, d_val=None, n_val=None, save_path=None):
             df_pivot = df_filtered.pivot(index='l', columns='Key', values='Mean').reset_index()
 
             # Create a new figure for each combination of d and h
-            fig, ax = plt.subplots(figsize=(8, 6))
+            fig, ax = plt.subplots(figsize=(12, 6))
 
             plt.grid(True, which='major', axis='both', linestyle='--', linewidth=0.5, zorder=0, color='0.9')
 
@@ -42,20 +46,20 @@ def bar_plot_dnl(df, d_val=None, n_val=None, save_path=None):
             x_middle = x + bar_width / 2  # Middle of the bars for proper x-ticks
 
             # Plot the bars for val and test
-            bars_val = ax.bar(x, df_pivot['val'], width=bar_width, label='val', color='#800074', alpha=0.7, zorder=2)
+            bars_val = ax.bar(x, df_pivot['val'], width=bar_width, label='val', color='#f55f74', alpha=0.8, zorder=2)
             bars_test = ax.bar(x + bar_width, df_pivot['test'], width=bar_width, label='test', color='#298c8c',
-                               alpha=0.7, zorder=2)
+                               alpha=0.8, zorder=2)
 
             # Plot lines connecting the middle of bars
-            ax.plot(x_middle - bar_width / 2, df_pivot['val'], marker='o', color='#800074', label='_nolegend_',
+            ax.plot(x_middle - bar_width / 2, df_pivot['val'], marker='o', color='#f55f74', label='_nolegend_',
                     linestyle='-', zorder=2)
             ax.plot(x_middle + bar_width / 2, df_pivot['test'], marker='o', color='#298c8c', label='_nolegend_',
                     linestyle='-', zorder=2)
 
             # Set plot title and labels
-            ax.set_title(f'Val-Test Performance Comparison (d={d}, n={n})', fontsize=14)
-            ax.set_xlabel('# of Layers', fontsize=14)
-            ax.set_ylabel('ROC-AUC', fontsize=14)
+            ax.set_title(f'Val-Test Performance (D={d}, N={n})', fontsize=17)
+            ax.set_xlabel('# of Layers', fontsize=17)
+            ax.set_ylabel('ROC-AUC', fontsize=17)
             # ax.set_ylim([0.4, 0.7])
 
             # Set x-ticks to be in the middle of the bar groups
@@ -66,9 +70,9 @@ def bar_plot_dnl(df, d_val=None, n_val=None, save_path=None):
             # ax.grid(True)
 
             # Set legend for only the bars
-            ax.legend(title='Key', fontsize=12)
+            ax.legend(title='Type', fontsize=15, title_fontsize=17)
 
-            ax.tick_params(axis='both', labelsize=12)
+            ax.tick_params(axis='both', labelsize=17)
 
             plt.subplots_adjust(left=0.1, right=0.95, top=0.92, bottom=0.1)
             # Optionally save the plot
@@ -79,7 +83,7 @@ def bar_plot_dnl(df, d_val=None, n_val=None, save_path=None):
             plt.show()
 
 
-def line_plot_across_var(df, x, y, save_path=None):
+def line_plot_across_var(df_new, x, y, save_path=None):
     labels = {
         'l': '# of Layers',
         'o': 'Optimizer',
@@ -88,7 +92,6 @@ def line_plot_across_var(df, x, y, save_path=None):
         'h': '# of Hidden Units',
         'm': 'Model'
     }
-    df_new, included_vars = process_df(df)
     # df_pivot = compute_diff(df_new, indices=included_vars)
     df_pivot = df_new[df_new['Key'] == "val-test"]
     if len(included_vars) > 2:
@@ -142,8 +145,7 @@ def line_plot_across_var(df, x, y, save_path=None):
             plt.show()
 
 
-def line_plot_across_all_vars(df, x, y, save_path=None):
-    df_new, included_vars = process_df(df)
+def line_plot_across_all_vars(df_new, x, y, save_path=None):
     df_pivot = compute_diff(df_new, indices=included_vars)
 
     if len(included_vars) > 2:
@@ -187,15 +189,18 @@ def line_plot_across_all_vars(df, x, y, save_path=None):
         plt.show()
 
 
-def line_plot_avg(df, x, y, save_path=None):
+def line_plot_avg(df_new, x, y, save_path=None):
     labels = {
         'l': '# of Layers',
         'o': 'Optimizer',
         'd': 'Feature Size',
-        'n': '# of Training Samples',
-        'h': '# of Hidden Units'
+        # 'n': '# of Training Samples',
+        'n': "Sample Size",
+        'h': '# of Hidden Units',
+        'f': 'Window Size',
+        'ch': '# of Channels',
+        'm': 'Architecture'
     }
-    df_new, included_vars = process_df(df)
     # df_pivot = compute_diff(df_new, indices=included_vars)
     df_pivot = df_new[df_new['Key'] == "val-test"]
     df_pivot = df_pivot.pivot_table(index=included_vars, columns='Key', values='Mean').reset_index()
@@ -211,10 +216,14 @@ def line_plot_avg(df, x, y, save_path=None):
         # Create the plot
         fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
-        colors = ['#800074', '#298c8c', '#f55f74', '#8cc5e3']
+        plt.grid(True, which='major', axis='both', linestyle='--', linewidth=0.5, zorder=0, color='0.9')
+        plt.gca().yaxis.set_major_locator(plt.MultipleLocator(0.02))
+
+        colors = ['#f55f74', '#298c8c', '#800074', '#8cc5e3', "#f0c571", "#cecece"]
         # Plot average values with standard deviation shaded areas
-        for i, y_value in enumerate(df_pivot[y].unique()):
+        # for i, y_value in enumerate(df_pivot[y].unique()):
         # for i, y_value in enumerate([1, 4, 32, 64]):
+        for i, y_value in enumerate([50, 200, 400, 1600]):
             df_y = grouped_df[grouped_df[y] == y_value]
             ax.plot(df_y[x], df_y['val_test_diff_mean'], marker='o', color=colors[i], label=f'{y_value}')
             ax.fill_between(df_y[x],
@@ -224,20 +233,19 @@ def line_plot_avg(df, x, y, save_path=None):
                             color=colors[i])  # Shaded area for standard deviation
 
         # Set the title and labels
-        ax.set_title(f'Generalization Error Across {labels[x]}', fontsize=16)
-        ax.set_xlabel(labels[x], fontsize=16)
-        ax.set_ylabel('Generalization Error', fontsize=16)
+        ax.set_title(f'Val-Test Gap Across {labels[x]}', fontsize=17)
+        ax.set_xlabel(labels[x], fontsize=17)
+        ax.set_ylabel('Val-Test Gap', fontsize=17)
 
         # Set x-axis to logarithmic scale with base 2
         ax.set_xscale('log', base=2)
-        ax.grid(True)
 
-        ax.tick_params(axis='both', labelsize=14)
+        ax.tick_params(axis='both', labelsize=17)
 
         # Add legend
-        ax.legend(title=labels[y], fontsize=14)
+        ax.legend(title=labels[y], fontsize=16, title_fontsize=17, loc="best")
 
-        plt.subplots_adjust(left=0.11, right=0.95, top=0.92, bottom=0.1)
+        plt.subplots_adjust(left=0.12, right=0.95, top=0.92, bottom=0.11)
 
         # Optionally save the plot
         if save_path:
@@ -247,8 +255,156 @@ def line_plot_avg(df, x, y, save_path=None):
         plt.show()
 
 
-def bar_plot_across_var(df, x, y=None, save_path=None):
-    df_new, included_vars = process_df(df)
+def plot_participant_roc(roc_data, save_path):
+    for model, participants in roc_data.items():
+        for participant, runs in participants.items():
+            plt.figure(figsize=(10, 8))
+            mean_tpr_val = 0.0
+            mean_tpr_test = 0.0
+            all_tpr_val = []
+            all_tpr_test = []
+            mean_fpr = np.linspace(0, 1, 10000)
+
+            for run, data in runs.items():
+                # Calculate ROC for validation set
+                fpr_val, tpr_val, _ = roc_curve(data['y_true_val'], data['y_pred_val'])
+                interp_tpr_val = np.interp(mean_fpr, fpr_val, tpr_val)
+                mean_tpr_val += interp_tpr_val
+                all_tpr_val.append(interp_tpr_val)
+
+                # Calculate ROC for test set
+                fpr_test, tpr_test, _ = roc_curve(data['y_true_test'], data['y_pred_test'])
+                interp_tpr_test = np.interp(mean_fpr, fpr_test, tpr_test)
+                mean_tpr_test += interp_tpr_test
+                all_tpr_test.append(interp_tpr_test)
+
+                # Plot individual ROC curves
+                # plt.plot(fpr_val, tpr_val, color='blue', alpha=0.3)
+                # plt.plot(fpr_test, tpr_test, color='red', alpha=0.3)
+
+            # Calculate mean and std for validation and test
+            mean_tpr_val /= len(runs)
+            mean_tpr_test /= len(runs)
+            std_tpr_val = np.std(all_tpr_val, axis=0)
+            std_tpr_test = np.std(all_tpr_test, axis=0)
+
+            # Plot mean ROC curves
+            plt.plot(mean_fpr, mean_tpr_val, color='blue',
+                     label=f'Mean Validation ROC (AUC = {auc(mean_fpr, mean_tpr_val):.2f})')
+            plt.plot(mean_fpr, mean_tpr_test, color='red',
+                     label=f'Mean Test ROC (AUC = {auc(mean_fpr, mean_tpr_test):.2f})')
+
+            # Fill between for std
+            plt.fill_between(mean_fpr, mean_tpr_val - std_tpr_val, mean_tpr_val + std_tpr_val, color='blue', alpha=0.2)
+            plt.fill_between(mean_fpr, mean_tpr_test - std_tpr_test, mean_tpr_test + std_tpr_test, color='red',
+                             alpha=0.2)
+
+            plt.title(f'Participant {participant} - Model {model}')
+            plt.xlabel('False Positive Rate')
+            plt.ylabel('True Positive Rate')
+            plt.legend(loc='lower right')
+            plt.grid(True)
+
+            # Save the plot
+            os.makedirs(save_path, exist_ok=True)
+            plt.savefig(os.path.join(save_path, f'{model}_participant_{participant}_roc.png'))
+            plt.close()
+
+
+def plot_aggregate_roc(roc_data, save_path):
+    for model, participants in roc_data.items():
+        plt.figure(figsize=(10, 8))
+        mean_tpr_val = 0.0
+        mean_tpr_test = 0.0
+        all_tpr_val = []
+        all_tpr_test = []
+        mean_fpr = np.linspace(0, 1, 500)
+
+        for participant, runs in participants.items():
+            for run, data in runs.items():
+                # Calculate ROC for validation set
+                fpr_val, tpr_val, _ = roc_curve(data['y_true_val'], data['y_pred_val'])
+                interp_tpr_val = np.interp(mean_fpr, fpr_val, tpr_val)
+                mean_tpr_val += interp_tpr_val
+                all_tpr_val.append(interp_tpr_val)
+
+                # Calculate ROC for test set
+                fpr_test, tpr_test, _ = roc_curve(data['y_true_test'], data['y_pred_test'])
+                interp_tpr_test = np.interp(mean_fpr, fpr_test, tpr_test)
+                mean_tpr_test += interp_tpr_test
+                all_tpr_test.append(interp_tpr_test)
+
+        # Calculate mean and SEM for validation and test
+        mean_tpr_val /= len(participants) * len(runs)
+        mean_tpr_test /= len(participants) * len(runs)
+        sem_tpr_val = sem(all_tpr_val, axis=0)
+        sem_tpr_test = sem(all_tpr_test, axis=0)
+
+        # Plot mean ROC curves
+        plt.plot(mean_fpr, mean_tpr_val, color='blue',
+                 label=f'Mean Validation ROC (AUC = {auc(mean_fpr, mean_tpr_val):.2f})')
+        plt.plot(mean_fpr, mean_tpr_test, color='red',
+                 label=f'Mean Test ROC (AUC = {auc(mean_fpr, mean_tpr_test):.2f})')
+
+        # Fill between for SEM
+        plt.fill_between(mean_fpr, mean_tpr_val - sem_tpr_val, mean_tpr_val + sem_tpr_val, color='blue', alpha=0.2)
+        plt.fill_between(mean_fpr, mean_tpr_test - sem_tpr_test, mean_tpr_test + sem_tpr_test, color='red', alpha=0.2)
+
+        plt.title(f'Mean ROC Curve Across Participants - Model {model}')
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.legend(loc='lower right')
+        plt.grid(True)
+
+        # Save the plot
+        os.makedirs(save_path, exist_ok=True)
+        plt.savefig(os.path.join(save_path, f'{model}_aggregate_roc.png'))
+        plt.close()
+
+
+def box_plot_real_data(df_new, save_path=None):
+    df_filtered = df_new[df_new['Key'].isin(['val', 'test'])]
+
+    # Create a figure and axes
+    plt.figure(figsize=(8, 6))
+
+    plt.grid(True, which='major', axis='y', linestyle='--', linewidth=0.5, zorder=0, color='0.93')
+
+    # Prepare the data for plotting
+    df_filtered['Key'] = df_filtered['Key'].astype('category')
+
+    df_filtered = df_filtered.sort_values(by=['s'])
+
+    # Plotting boxplots
+    sns.boxplot(x='m', y='Mean', hue='Key', data=df_filtered, palette=['#298c8c', '#f55f74'], showfliers=False,
+                saturation=0.9, zorder=2)
+
+    # Customize xticks
+    plt.tick_params(axis='both', labelsize=15)
+
+    # Set labels and title
+    plt.xlabel('Model', fontsize=15)
+    plt.ylabel('ROC-AUC', fontsize=15)
+    plt.title('Validation and Test Performances Across Subjects by Model', fontsize=15)
+
+    # Add legend for 'val' and 'test'
+    handles, labels = plt.gca().get_legend_handles_labels()
+    # Filter out subject legends and keep only 'val' and 'test'
+    handles = [handle for handle, label in zip(handles, labels) if label in ['val', 'test']]
+    labels = [label for label in labels if label in ['val', 'test']]
+    plt.legend(handles, labels, title='Type', fontsize=13, title_fontsize=14)
+
+    plt.subplots_adjust(left=0.1, right=0.95, top=0.92, bottom=0.1)
+
+    # Show plot
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(os.path.join(save_path, "val_test_real_eeg_all_subj.svg"))
+    plt.show()
+
+
+def bar_plot_across_var(df_new, x, y=None, save_path=None):
     unique_var_values = df_new[x].unique()
 
     if y:
@@ -375,6 +531,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-x', type=str, default='d')
     parser.add_argument('-y', type=str, default=None)
+    parser.add_argument('--fixed_vars', nargs='+', type=str, default=None)
     parser.add_argument('--root_path', type=str)
     parser.add_argument('--experiment', type=str)
     parser.add_argument('--task', type=str)
@@ -390,15 +547,29 @@ if __name__ == "__main__":
     save_dir = os.path.join(root_path, experiment + "_plots")
     results = collect_results(data_dir)
     if task == "bar_plot_fixed_var":
-        bar_plot_across_var(results, x=args.x, y=args.y, save_path=save_dir)
+        dff, included_vars = process_df(results)
+        bar_plot_across_var(dff, x=args.x, y=args.y, save_path=save_dir)
     elif task == "line_plot_averaged":
-        line_plot_avg(results, x=args.x, y=args.y, save_path=save_dir)
+        dff, included_vars = process_df(results)
+        line_plot_avg(dff, x=args.x, y=args.y, save_path=save_dir)
     elif task == "line_plot_fixed_var":
-        line_plot_across_var(results, x=args.x, y=args.y, save_path=save_dir)
+        df, included_vars = process_df(results)
+        line_plot_across_var(df, x=args.x, y=args.y, save_path=save_dir)
     elif task == "bar_plot_dnl":
-        bar_plot_dnl(results, d_val=128, n_val=400, save_path=save_dir)
+        dff, included_vars = process_df(results)
+        bar_plot_dnl(dff, d_val=64, n_val=50, save_path=save_dir)
     elif task == "synth_eeg":
-        print("!!")
-        line_plot_across_var(results, x='n', y='m', save_path=save_dir)
+        # line_plot_across_var(results, x='n', y='m', save_path=save_dir)
+        dff, included_vars = process_df(results)
+        fixed_vars = args.fixed_vars
+        # dff = dff[dff[fixed_vars[0]] == 'resnet1d']
+        # dff = dff[dff[fixed_vars[1]] == 64]
+        line_plot_avg(dff, x=args.x, y=args.y, save_path=save_dir)
+    elif task == "real_eeg":
+        roc_content = load_roc_data(root_dir=data_dir)
+        dff, included_vars = process_df(results)
+        # plot_participant_roc(roc_content, save_dir)
+        # plot_aggregate_roc(roc_content, save_dir)
+        box_plot_real_data(dff, save_path=save_dir)
     else:
         raise NotImplementedError
