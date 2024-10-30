@@ -9,12 +9,13 @@ import copy
 class Trainer:
     def __init__(
             self, model, optimizer, loss, n_epochs, batch_size, n_classes=2,
-            device='cuda'
+            patience=None, device='cuda'
     ):
         self.device = device
         self.model = model.to(device)
         self.optimizer = optimizer
         self.loss = loss
+        self.patience = patience if patience is not None else n_epochs
 
         self.epochs = n_epochs
         self.batch_size = batch_size
@@ -85,7 +86,13 @@ class Trainer:
                     'auroc': val_auroc,
                     'train_auroc': train_auroc
                 }
+            else:
+                self.patience -= 1
 
+            if self.patience == 0:
+                print(f"Early stopping at epoch {epoch}")
+                break
+            
         if best_model is None:
             best_model = {
                 'epoch': epoch,

@@ -5,9 +5,15 @@ import mne
 import numpy as np
 from scipy.io import loadmat
 import os
+import json
 import pickle
 
 import model.architectures as architectures
+
+
+def save_config(loaded_config, root_path, filename='config_run.json'):
+    with open(os.path.join(root_path, filename), 'w') as file:
+        json.dump(vars(loaded_config), file)
 
 
 def load_cov_mat(root_path, filename, d):
@@ -365,8 +371,8 @@ def load_model(model_name, **kwargs):
             n_channels=kwargs["n_channels"],
             n_samples=kwargs["n_samples"],
             net_filter_size=[64, 128, 196, 256, 320],
-            net_seq_length=[kwargs['n_samples'], 128, 64, 32, 16],
-            # net_seq_length=[kwargs['n_samples'], 64, 32, 16, 8],
+            # net_seq_length=[kwargs['n_samples'], 128, 64, 32, 16],
+            net_seq_length=[kwargs['n_samples'], 64, 32, 16, 8],
             n_classes=kwargs["n_classes"],
             kernel_size=17,
             dropout_rate=0.5

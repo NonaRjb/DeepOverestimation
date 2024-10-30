@@ -30,18 +30,19 @@ def seed_everything(seed_val):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', '--batch', type=int, default=8)
-    parser.add_argument('--lr', type=float, default=0.0001)
-    parser.add_argument('--epochs', type=int, default=100)
-    parser.add_argument('--optim', type=str, default='adamw')
-    parser.add_argument('--hidden_size', type=int, default=8)
-    parser.add_argument('-l', '--n_layers', type=int, default=1)
-    parser.add_argument('-n', '--n_samples', type=int, default=1000)
-    parser.add_argument('--n_test', type=int, default=1000)
-    parser.add_argument('-d', '--n_features', type=int, default=2)
-    parser.add_argument('-r', '--n_large', type=float, default=1)
-    parser.add_argument('--cov_file', type=str, default=None)
-    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('-b', '--batch', type=int, default=8, help='Batch size')
+    parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
+    parser.add_argument('--epochs', type=int, default=100, help='Number of epochs')
+    parser.add_argument('--optim', type=str, default='adamw', help='Optimizer')
+    parser.add_argument('--hidden_size', type=int, default=8, help='Hidden layer size, Network width')
+    parser.add_argument('-l', '--n_layers', type=int, default=1, help='Number of hidden layers, Network depth')
+    parser.add_argument('-n', '--n_samples', type=int, default=1000, help='Number of training samples')
+    parser.add_argument('--n_test', type=int, default=1000, help='Number of test samples')
+    parser.add_argument('-d', '--n_features', type=int, default=2, help='Number of input features')
+    parser.add_argument('-r', '--n_large', type=float, default=1, help='Number of large eigenvalues (ratio of large eigenvalues to the total number of eigenvalues if 0<=r<1)')
+    parser.add_argument('--patience', type=int, default=None, help='Patience for early stopping')
+    parser.add_argument('--cov_file', type=str, default=None, help='Covariance matrix file')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--experiment', type=str, default='test')
     parser.add_argument('--root_path', type=str, default='/local_storage/datasets/nonar/Overfitting/cov_data')
     parser.add_argument('--save_path', type=str, default='/Midgard/home/nonar/data/Overfitting/')
@@ -78,6 +79,7 @@ if __name__ == "__main__":
     n_test = args.n_test
     d = args.n_features
     r = args.n_large
+    patience = args.patience
     cov_file = args.cov_file
 
     if cov_file is not None:
@@ -105,11 +107,14 @@ if __name__ == "__main__":
             save_dir = str(d) + "d_" + str(n) + 'n_' + str(n_layers) + 'l'
         elif variables[-1] in ['ohl', 'lho', 'hol', 'olh', 'loh', 'hlo']:
             save_dir = optim_name + "o_" + str(hidden_size) + 'h_' + str(n_layers) + 'l'
+        elif variables[-1] in ['dpl', 'lpd', 'pdl', 'dlp', 'ldp', 'pld']:
+            save_dir = str(d) + "d_" + str(patience) + 'p_' + str(n_layers) + 'l'
         else:
             save_dir = args.experiment
 
     save_path = os.path.join(save_path, save_dir)
     os.makedirs(save_path, exist_ok=True)
+    utils.save_config(args, save_path)
 
     test_data = RandomDataset(length=n_test, n_features=d, cov_mat=cov_mat, seed=seed+test_offset)
     data = RandomDataset(length=n, n_features=d, cov_mat=cov_mat, seed=seed)
@@ -144,7 +149,7 @@ if __name__ == "__main__":
         else:
             raise NotImplementedError
         loss = nn.BCEWithLogitsLoss().to(device)
-        trainer = Trainer(model, optimizer, loss, epochs, batch_size, device=device)
+        trainer = Trainer(model, optimizer, loss, epochs, batch_size, patience=patience, device=device)
         best_model = trainer.train(train_loader, val_loader)
         model.load_state_dict(best_model['model_state_dict'])
         test_loss, test_auroc, _, _ = trainer.evaluate(model, test_loader)
