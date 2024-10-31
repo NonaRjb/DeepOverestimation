@@ -552,6 +552,7 @@ if __name__ == "__main__":
     root_path = args.root_path
     data_dir = os.path.join(root_path, experiment)
     save_dir = os.path.join(root_path, experiment + "_plots")
+    os.makedirs(save_dir, exist_ok=True)
     results = collect_results(data_dir)
     if task == "bar_plot_fixed_var":
         dff, included_vars = process_df(results)
