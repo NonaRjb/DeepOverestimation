@@ -189,7 +189,7 @@ def line_plot_across_all_vars(df_new, x, y, save_path=None):
         plt.show()
 
 
-def line_plot_avg(df_new, x, y, save_path=None):
+def line_plot_avg(df_new, x, y, save_path=None, **kwargs):
     labels = {
         'l': '# of Layers',
         'o': 'Optimizer',
@@ -201,11 +201,9 @@ def line_plot_avg(df_new, x, y, save_path=None):
         'ch': '# of Channels',
         'm': 'Architecture'
     }
-    # df_pivot = compute_diff(df_new, indices=included_vars)
     df_pivot = df_new[df_new['Key'] == "val-test"]
     df_pivot = df_pivot.pivot_table(index=included_vars, columns='Key', values='Mean').reset_index()
     if len(included_vars) > 2:
-        fixed_var = next((item for item in included_vars if item != x and item != y), None)
 
         # Compute average and standard deviation of 'val_test_diff' grouped by x and y
         grouped_df = df_pivot.groupby([x, y]).agg(
@@ -220,10 +218,18 @@ def line_plot_avg(df_new, x, y, save_path=None):
         plt.gca().yaxis.set_major_locator(plt.MultipleLocator(0.02))
 
         colors = ['#f55f74', '#298c8c', '#800074', '#8cc5e3', "#f0c571", "#cecece"]
-        # Plot average values with standard deviation shaded areas
-        # for i, y_value in enumerate(df_pivot[y].unique()):
-        # for i, y_value in enumerate([1, 4, 32, 64]):
-        for i, y_value in enumerate([50, 200, 400, 1600]):
+        if 'y_values' in kwargs.keys():
+            y_values_all = kwargs['y_values']
+        elif y == "l":
+            y_values_all = [1, 4, 32, 64]
+        elif y == "n":
+            y_values_all = [50, 200, 400, 1600]
+        elif y == "o":
+            y_values_all = df_pivot[y].unique()
+        else:
+            raise NotImplementedError
+        # Plot average values with standard deviation shaded area
+        for i, y_value in enumerate(y_values_all):
             df_y = grouped_df[grouped_df[y] == y_value]
             ax.plot(df_y[x], df_y['val_test_diff_mean'], marker='o', color=colors[i], label=f'{y_value}')
             ax.fill_between(df_y[x],
@@ -531,6 +537,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-x', type=str, default='d')
     parser.add_argument('-y', type=str, default=None)
+    parser.add_argument('--y_vals', nargs='+', type=int, default=None)
     parser.add_argument('--fixed_vars', nargs='+', type=str, default=None)
     parser.add_argument('--root_path', type=str)
     parser.add_argument('--experiment', type=str)
@@ -551,7 +558,10 @@ if __name__ == "__main__":
         bar_plot_across_var(dff, x=args.x, y=args.y, save_path=save_dir)
     elif task == "line_plot_averaged":
         dff, included_vars = process_df(results)
-        line_plot_avg(dff, x=args.x, y=args.y, save_path=save_dir)
+        if args.y_vals is not None:
+            line_plot_avg(dff, x=args.x, y=args.y, save_path=save_dir, y_values=args.y_vals)
+        else:
+            line_plot_avg(dff, x=args.x, y=args.y, save_path=save_dir)
     elif task == "line_plot_fixed_var":
         df, included_vars = process_df(results)
         line_plot_across_var(df, x=args.x, y=args.y, save_path=save_dir)
